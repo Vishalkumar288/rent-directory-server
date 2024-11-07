@@ -1,30 +1,32 @@
-const express = require('express');
-const { google } = require('googleapis');
-const path = require('path');
+const express = require("express");
+const { google } = require("googleapis");
+const path = require("path");
 const app = express();
+const cors = require("cors");
+app.use(cors({ origin: /^http:\/\/localhost:\d+$/ }));
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: path.join(__dirname, 'google-service-account.json'),
-  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  keyFile: path.join(__dirname, "google-service-account.json"),
+  scopes: ["https://www.googleapis.com/auth/spreadsheets"]
 });
 
-const sheets = google.sheets({ version: 'v4', auth });
-const key = process.env.GOOGLE_SHEETS_ID || "1l7puy7JS7bxRZ8LoWIVKS5g1I60WgjRuqRpo15tONyw"
+const sheets = google.sheets({ version: "v4", auth });
+const key =
+  process.env.GOOGLE_SHEETS_ID ||
+  "1l7puy7JS7bxRZ8LoWIVKS5g1I60WgjRuqRpo15tONyw";
 app.use(express.json());
 
-console.log(key)
-
-app.post('/append-to-sheet', async (req, res) => {
+app.post("/append-to-sheet", async (req, res) => {
   const { values } = req.body;
   const spreadsheetId = key;
-  const range = 'Sheet1!A1'; // Adjust as needed
+  const range = "Sheet1!A1"; // Adjust as needed
 
   try {
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
-      valueInputOption: 'USER_ENTERED',
-      resource: { values },
+      valueInputOption: "USER_ENTERED",
+      resource: { values }
     });
     res.status(200).json({ data: response.data });
   } catch (error) {
