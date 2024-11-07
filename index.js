@@ -9,12 +9,14 @@ const auth = new google.auth.GoogleAuth({
 });
 
 const sheets = google.sheets({ version: 'v4', auth });
-
+const key = process.env.GOOGLE_SHEETS_ID || "1l7puy7JS7bxRZ8LoWIVKS5g1I60WgjRuqRpo15tONyw"
 app.use(express.json());
+
+console.log(key)
 
 app.post('/append-to-sheet', async (req, res) => {
   const { values } = req.body;
-  const spreadsheetId = '1l7puy7JS7bxRZ8LoWIVKS5g1I60WgjRuqRpo15tONyw';
+  const spreadsheetId = key;
   const range = 'Sheet1!A1'; // Adjust as needed
 
   try {
