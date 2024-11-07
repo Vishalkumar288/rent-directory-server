@@ -17,9 +17,9 @@ const key =
 app.use(express.json());
 
 app.post("/append-to-sheet", async (req, res) => {
-  const { values } = req.body;
+  const { values, sheet } = req.body;
   const spreadsheetId = key;
-  const range = "Sheet1!A1"; // Adjust as needed
+  const range = `${sheet}!A7`; // Adjust as needed
 
   try {
     const response = await sheets.spreadsheets.values.append({
