@@ -2,6 +2,7 @@ const express = require("express");
 const apiRoutes = require("./api");
 const path = require("path");
 const { corsMiddleware } = require("./api/middleware/cors");
+require('dotenv').config();
 
 const app = express();
 
@@ -11,6 +12,5 @@ app.use(express.json());
 
 // API Routes
 app.use("/rent", apiRoutes);
-
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.NODE_PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

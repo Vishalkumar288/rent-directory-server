@@ -9,10 +9,9 @@ const {
 } = require("./modules/sheets");
 const { validateRequest } = require("../utils/validate");
 const router = express.Router();
+require('dotenv').config();
 
-const spreadsheetId =
-  process.env.GOOGLE_SHEETS_ID ||
-  "1l7puy7JS7bxRZ8LoWIVKS5g1I60WgjRuqRpo15tONyw";
+const spreadsheetId = process.env.NODE_GOOGLE_SHEETS_ID;
 
 router.get("/all-flats", async (req, res) => {
   try {
