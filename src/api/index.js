@@ -7,7 +7,6 @@ const {
   formatResponseData,
   paginateData
 } = require("./modules/sheets");
-const { validateRequest } = require("../utils/validate");
 const router = express.Router();
 require('dotenv').config();
 
