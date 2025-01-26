@@ -7,10 +7,17 @@ const {
   formatResponseData,
   paginateData
 } = require("./modules/sheets");
+const googleLogin = require("./controller/authController");
+const authenticateToken = require("./middleware/auth");
 const router = express.Router();
-require('dotenv').config();
+require("dotenv").config();
 
 const spreadsheetId = process.env.NODE_GOOGLE_SHEETS_ID;
+
+router.get("/google", googleLogin);
+
+// Apply authentication middleware to all routes below this line
+router.use(authenticateToken);
 
 router.get("/all-flats", async (req, res) => {
   try {
@@ -38,7 +45,7 @@ router.post("/add-rent-entry", async (req, res) => {
     const data = await appendToSheet(spreadsheetId, range, values);
     res.status(200).json({ data });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message:"Try again later" });
   }
 });
 
@@ -63,14 +70,14 @@ router.get("/recent-entries", async (req, res) => {
   }
 
   try {
-    const data = await fetchRecentEntries(spreadsheetId, `${sheet}!A7:Z`);
-    const formattedData = formatResponseData(data);
+    const { recentEntries, sheetSummary } = await fetchRecentEntries(spreadsheetId, sheet);
+    const formattedData = formatResponseData(recentEntries);
     const paginatedData = paginateData(
       formattedData,
       parsedPage,
       parsedPageSize
     );
-    res.status(200).json({ data: paginatedData });
+    res.status(200).json({ data: paginatedData, sheetSummary });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

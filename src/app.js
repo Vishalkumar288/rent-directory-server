@@ -11,6 +11,6 @@ app.use(corsMiddleware);
 app.use(express.json());
 
 // API Routes
-app.use("/rent", apiRoutes);
+app.use("/auth", apiRoutes);
 const PORT = process.env.NODE_PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

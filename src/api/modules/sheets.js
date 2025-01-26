@@ -15,71 +15,59 @@ const sheets = google.sheets({ version: "v4", auth });
 
 const fetchSheetSummary = async (spreadsheetId) => {
   try {
-    // Fetch the list of sheets in the spreadsheet
-    const sheetsInfo = await sheets.spreadsheets.get({ spreadsheetId });
-    const sheetNames = sheetsInfo.data.sheets.map(
-      (sheet) => sheet.properties.title
-    );
+    const sheetName = "Sheet-Summary"; // Specify the sheet name directly
+    const range = `${sheetName}!A2:G6`; // Adjusted to match the range for the provided table
 
-    const summary = [];
+    // Fetch data from the specific sheet
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range
+    });
+    const rows = response.data.values || [];
 
-    for (const sheet of sheetNames) {
-      // Fetch rows from row 7 to the end
-      const range = `${sheet}!A7:Z`;
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range
-      });
-      const rows = response.data.values || [];
-
-      // Count rows for each category
-      const rentRows = rows.filter(
-        (row) => row[0] && (row[0] !== "" || row[1] !== "" || row[2] !== "")
-      ).length;
-      const electricityBillRows = rows.filter(
-        (row) => row[4] && (row[4] !== "" || row[5] !== "" || row[6] !== "")
-      ).length;
-
-      // Fetch Agreed Upon Rent and Security Deposit
-      const rentRange = `${sheet}!I3:J4`;
-      const securityDepositRange = `${sheet}!I7:J8`;
-
-      const rentAmountResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: rentRange
-      });
-      const securityDepositResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId,
-        range: securityDepositRange
-      });
-
-      const agreedRent =
-        +rentAmountResponse.data.values?.flat().join(" ") || "";
-      const securityDeposit =
-        +securityDepositResponse.data.values?.flat().join(" ") || "";
-
-      // Find the most recent date (assuming date is in column B)
-      let lastEntryDate = "";
-      for (let i = rows.length - 1; i >= 0; i--) {
-        if (rows[i][0]) {
-          // Assuming date is in the second column
-          lastEntryDate = rows[i][0];
-          break;
-        }
-      }
-
-      // Add summary for the sheet
-      summary.push({
-        sheetName: sheet,
-        rentRows,
-        electricityBillRows,
-        agreedRent,
-        securityDeposit,
-        lastEntryDate
-      });
-    }
+    // Process the rows to extract the required data
+    const summary = rows.map((row) => ({
+      floor: row[0] || "", // Column A: Floor
+      rentPerMonth: +row[1] || 0, // Column B: Rent / Month
+      securityDeposit: +row[2] || 0, // Column C: Security Deposit
+      totalRentCollected: +row[3] || 0, // Column D: Total Rent Collected
+      totalElectricityCollected: +row[4] || 0, // Column E: Total Electricity Collected
+      rentStartDate: row[5] || "", // Column F: rent Start Date
+      lastEntryDate: row[6] || "" // Column G: recent Entry Date
+    }));
 
     return summary;
+  } catch (error) {
+    throw new Error(`Error fetching data from Sheet-Summary: ${error.message}`);
+  }
+};
+
+const fetchSheetSummaryForSheet = async (spreadsheetId, sheet) => {
+  try {
+    const summary = await fetchSheetSummary(spreadsheetId);
+    const matchingRow = summary.find((row) => row.floor === sheet);
+
+    if (!matchingRow) {
+      throw new Error(`No matching floor found for sheetId: ${sheet}`);
+    }
+    const {
+      floor,
+      rentPerMonth,
+      securityDeposit,
+      totalRentCollected,
+      totalElectricityCollected,
+      rentStartDate,
+      lastEntryDate
+    } = matchingRow;
+    return {
+      floor,
+      rentPerMonth,
+      securityDeposit,
+      totalRentCollected,
+      totalElectricityCollected,
+      rentStartDate,
+      lastEntryDate
+    };
   } catch (error) {
     throw new Error(`Error fetching sheet summary: ${error.message}`);
   }
@@ -101,16 +89,24 @@ const appendToSheet = async (spreadsheetId, range, values) => {
 };
 
 // Fetch recent 10 entries
-const fetchRecentEntries = async (spreadsheetId, range) => {
+const fetchRecentEntries = async (spreadsheetId, sheet) => {
   try {
+    const range = `${sheet}!A7:Z`;
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range
     });
 
     const allRows = response.data.values || [];
+    const recentEntries = allRows.reverse(); // Reverse rows to get descending order
 
-    return allRows.reverse(); // Reverse rows to get descending order
+    // Fetch sheet summary for the specified sheet
+    const sheetSummary = await fetchSheetSummaryForSheet(spreadsheetId, sheet);
+
+    return {
+      recentEntries,
+      sheetSummary
+    };
   } catch (error) {
     throw new Error(error.message);
   }
