@@ -74,14 +74,42 @@ const fetchSheetSummaryForSheet = async (spreadsheetId, sheet) => {
 };
 
 // Append data to a sheet
-const appendToSheet = async (spreadsheetId, range, values) => {
+const appendToSheet = async (
+  spreadsheetId,
+  range,
+  values,
+  isElectricBill = false
+) => {
   try {
-    const response = await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range,
-      valueInputOption: "USER_ENTERED",
-      resource: { values }
-    });
+    // If appending to E, F, G columns, find the last row with data
+    if (isElectricBill) {
+      const sheet = range.split("!")[0];
+      const columnRange = `${sheet}!E:E`;
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: columnRange
+      });
+
+      const rows = response.data.values || [];
+      const lastRow = rows.length; // Adjust for the starting row (E7)
+
+      range = `${sheet}!E${lastRow + 1}:G${lastRow + 1}`;
+    }
+
+    const response = isElectricBill
+      ? await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range,
+          valueInputOption: "USER_ENTERED",
+          resource: { values }
+        })
+      : await sheets.spreadsheets.values.append({
+          spreadsheetId,
+          range,
+          valueInputOption: "USER_ENTERED",
+          resource: { values }
+        });
+
     return response.data;
   } catch (error) {
     throw new Error(error.message);

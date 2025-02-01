@@ -30,7 +30,7 @@ router.get("/all-flats", async (req, res) => {
 
 // Append new rent entry
 router.post("/add-rent-entry", async (req, res) => {
-  const { values, sheet } = req.body;
+  const { values, sheet, isElectricBill } = req.body;
 
   // Validate inputs
   if (!sheet || !Array.isArray(values)) {
@@ -38,18 +38,26 @@ router.post("/add-rent-entry", async (req, res) => {
       .status(400)
       .json({ error: "Sheet name and values are mandatory." });
   }
-
-  const range = `${sheet}!A7`;
+  let range;
+  if (Boolean(isElectricBill)) {
+    range = `${sheet}!E7:G7`;
+  } else {
+    range = `${sheet}!A7`;
+  }
 
   try {
-    const data = await appendToSheet(spreadsheetId, range, values);
-    res.status(200).json({ data });
+    const data = await appendToSheet(spreadsheetId, range, values,isElectricBill);
+    res
+      .status(200)
+      .json({
+        message: "Entry Successfully Added",
+        data: { entriesAdded: data?.updates?.updatedRows }
+      });
   } catch (error) {
-    res.status(500).json({ message:"Try again later" });
+    res.status(500).json({ message: "Try again later" });
   }
 });
 
-// Fetch recent 10 entries
 router.get("/recent-entries", async (req, res) => {
   const { sheet, page = 1, pageSize = 10 } = req.query;
 
@@ -70,7 +78,10 @@ router.get("/recent-entries", async (req, res) => {
   }
 
   try {
-    const { recentEntries, sheetSummary } = await fetchRecentEntries(spreadsheetId, sheet);
+    const { recentEntries, sheetSummary } = await fetchRecentEntries(
+      spreadsheetId,
+      sheet
+    );
     const formattedData = formatResponseData(recentEntries);
     const paginatedData = paginateData(
       formattedData,
