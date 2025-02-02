@@ -174,18 +174,86 @@ const formatResponseData = (rows) => {
     .filter((row) => Object.keys(row).length > 0); // Filter out rows with no valid data
 };
 
-// Update electricity bill values
-const updateElectricityBill = async (spreadsheetId, range, values) => {
+const fetchAmountByMonthYear = async (
+  spreadsheetId,
+  sheet,
+  month,
+  year,
+  isElectricBill
+) => {
   try {
-    const response = await sheets.spreadsheets.values.update({
+    const columnRange = isElectricBill ? `${sheet}!E7:G` : `${sheet}!A7:C`;
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: columnRange
+    });
+
+    const rows = response.data.values || [];
+    const targetRow = rows.find((row) => {
+      const date = new Date(row[0].split("/").reverse().join("/"));
+      return (
+        date.getMonth() + 1 === parseInt(month) &&
+        date.getFullYear() === parseInt(year)
+      );
+    });
+    if (!targetRow) {
+      throw new Error(
+        "No matching entry found for the specified month and year."
+      );
+    }
+
+    return targetRow.slice(0, 3);
+  } catch (error) {
+    throw new Error(`Error fetching amount: ${error.message}`);
+  }
+};
+
+const updateAmountByMonthYear = async (
+  spreadsheetId,
+  sheet,
+  month,
+  year,
+  isElectricBill,
+  values
+) => {
+  try {
+    const columnRange = isElectricBill ? `${sheet}!E7:G` : `${sheet}!A7:C`;
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: columnRange
+    });
+
+    const rows = response.data.values || [];
+    const targetRowIndex = rows.findIndex((row) => {
+      const date = new Date(row[0].split("/").reverse().join("/"));
+
+      return (
+        date.getMonth() + 1 === parseInt(month) &&
+        date.getFullYear() === parseInt(year)
+      );
+    });
+
+    if (targetRowIndex === -1) {
+      throw new Error(
+        "No matching entry found for the specified month and year."
+      );
+    }
+
+    const range = isElectricBill
+      ? `${sheet}!E${targetRowIndex + 7}:G${targetRowIndex + 7}`
+      : `${sheet}!A${targetRowIndex + 7}:C${targetRowIndex + 7}`;
+
+    const updateResponse = await sheets.spreadsheets.values.update({
       spreadsheetId,
       range,
       valueInputOption: "USER_ENTERED",
       resource: { values }
     });
-    return response.data;
+
+    return updateResponse.data;
   } catch (error) {
-    throw new Error(error.message);
+    throw new Error(`Error updating amount: ${error.message}`);
   }
 };
 
@@ -194,6 +262,7 @@ module.exports = {
   appendToSheet,
   fetchRecentEntries,
   formatResponseData,
-  updateElectricityBill,
-  paginateData
+  paginateData,
+  fetchAmountByMonthYear,
+  updateAmountByMonthYear
 };
