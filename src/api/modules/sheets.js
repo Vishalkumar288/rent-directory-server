@@ -177,8 +177,7 @@ const formatResponseData = (rows) => {
 const fetchAmountByMonthYear = async (
   spreadsheetId,
   sheet,
-  month,
-  year,
+  monthYear,
   isElectricBill
 ) => {
   try {
@@ -191,11 +190,8 @@ const fetchAmountByMonthYear = async (
 
     const rows = response.data.values || [];
     const targetRow = rows.find((row) => {
-      const date = new Date(row[0].split("/").reverse().join("/"));
-      return (
-        date.getMonth() + 1 === parseInt(month) &&
-        date.getFullYear() === parseInt(year)
-      );
+      const monthYearCol = row[1];
+      return monthYearCol === monthYear;
     });
     if (!targetRow) {
       throw new Error(
@@ -212,8 +208,7 @@ const fetchAmountByMonthYear = async (
 const updateAmountByMonthYear = async (
   spreadsheetId,
   sheet,
-  month,
-  year,
+  monthYear,
   isElectricBill,
   values
 ) => {
@@ -226,12 +221,8 @@ const updateAmountByMonthYear = async (
 
     const rows = response.data.values || [];
     const targetRowIndex = rows.findIndex((row) => {
-      const date = new Date(row[0].split("/").reverse().join("/"));
-
-      return (
-        date.getMonth() + 1 === parseInt(month) &&
-        date.getFullYear() === parseInt(year)
-      );
+      const monthYearCol = row[1];
+      return monthYearCol === monthYear;
     });
 
     if (targetRowIndex === -1) {

@@ -15,7 +15,7 @@ require("dotenv").config();
 
 const spreadsheetId = process.env.NODE_GOOGLE_SHEETS_ID;
 
-router.get("/google", googleLogin);
+router.post("/google", googleLogin);
 
 // Apply authentication middleware to all routes below this line
 router.use(authenticateToken);
@@ -100,9 +100,9 @@ router.get("/recent-entries", async (req, res) => {
 
 // Fetch amount based on month, year, and isElectricBill
 router.get("/amount", async (req, res) => {
-  const { sheet, month, year, isElectricBill } = req.query;
+  const { sheet, monthYear, isElectricBill } = req.query;
 
-  if (!sheet || !month || !year) {
+  if (!sheet || !monthYear) {
     return res
       .status(400)
       .json({ message: "Sheet name, month, and year are mandatory." });
@@ -112,8 +112,7 @@ router.get("/amount", async (req, res) => {
     const amount = await fetchAmountByMonthYear(
       spreadsheetId,
       sheet,
-      month,
-      year,
+      monthYear,
       Boolean(isElectricBill)
     );
     res.status(200).json({ amount });
@@ -124,9 +123,9 @@ router.get("/amount", async (req, res) => {
 
 // Update amount based on month, year, and isElectricBill
 router.put("/amount", async (req, res) => {
-  const { sheet, month, year, isElectricBill, values } = req.body;
+  const { sheet, monthYear, isElectricBill, values } = req.body;
 
-  if (!sheet || !month || !year || !values || !Array.isArray(values)) {
+  if (!sheet || !monthYear || !values || !Array.isArray(values)) {
     return res
       .status(400)
       .json({ message: "Sheet name, month, year, and values are mandatory." });
@@ -136,8 +135,7 @@ router.put("/amount", async (req, res) => {
     const data = await updateAmountByMonthYear(
       spreadsheetId,
       sheet,
-      month,
-      year,
+      monthYear,
       Boolean(isElectricBill),
       values
     );
