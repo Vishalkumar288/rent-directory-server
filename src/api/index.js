@@ -10,19 +10,28 @@ const {
 } = require("./modules/sheets");
 const googleLogin = require("./controller/authController");
 const authenticateToken = require("./middleware/auth");
+const demoLogin = require("./controller/demoController");
 const router = express.Router();
 require("dotenv").config();
 
 const spreadsheetId = process.env.NODE_GOOGLE_SHEETS_ID;
 
+const demoSheetID = process.env.NODE_DEMO_SHEETS_ID;
+
 router.post("/google", googleLogin);
+
+router.post("/demo-user", demoLogin);
 
 // Apply authentication middleware to all routes below this line
 router.use(authenticateToken);
 
 router.get("/all-flats", async (req, res) => {
   try {
-    const sheetsSummary = await fetchSheetSummary(spreadsheetId);
+    const { demoLogin } = req.query;
+    const sheetsSummary = await fetchSheetSummary(
+      demoLogin ? demoSheetID : spreadsheetId,
+      demoLogin
+    );
     res.status(200).json({ tenants: sheetsSummary });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -31,7 +40,7 @@ router.get("/all-flats", async (req, res) => {
 
 // Append new rent entry
 router.post("/add-rent-entry", async (req, res) => {
-  const { values, sheet, isElectricBill } = req.body;
+  const { values, sheet, isElectricBill, demoLogin } = req.body;
 
   // Validate inputs
   if (!sheet || !Array.isArray(values)) {
@@ -48,7 +57,7 @@ router.post("/add-rent-entry", async (req, res) => {
 
   try {
     const data = await appendToSheet(
-      spreadsheetId,
+      demoLogin ? demoSheetID : spreadsheetId,
       range,
       values,
       isElectricBill
@@ -63,7 +72,7 @@ router.post("/add-rent-entry", async (req, res) => {
 });
 
 router.get("/recent-entries", async (req, res) => {
-  const { sheet, page = 1, pageSize = 10 } = req.query;
+  const { sheet, demoLogin, page = 1, pageSize = 10 } = req.query;
 
   if (!sheet) {
     return res.status(400).json({ message: "Sheet name is mandatory." });
@@ -78,12 +87,14 @@ router.get("/recent-entries", async (req, res) => {
     parsedPage < 1 ||
     parsedPageSize < 1
   ) {
-    return res.status(400).json({ message: "Invalid page or pageSize values." });
+    return res
+      .status(400)
+      .json({ message: "Invalid page or pageSize values." });
   }
 
   try {
     const { recentEntries, sheetSummary } = await fetchRecentEntries(
-      spreadsheetId,
+      demoLogin ? demoSheetID : spreadsheetId,
       sheet
     );
     const formattedData = formatResponseData(recentEntries);
@@ -100,7 +111,7 @@ router.get("/recent-entries", async (req, res) => {
 
 // Fetch amount based on month, year, and isElectricBill
 router.get("/amount", async (req, res) => {
-  const { sheet, monthYear, isElectricBill } = req.query;
+  const { sheet, monthYear, isElectricBill, demoLogin } = req.query;
 
   if (!sheet || !monthYear) {
     return res
@@ -110,7 +121,7 @@ router.get("/amount", async (req, res) => {
 
   try {
     const amount = await fetchAmountByMonthYear(
-      spreadsheetId,
+      demoLogin ? demoSheetID : spreadsheetId,
       sheet,
       monthYear,
       Boolean(isElectricBill)
@@ -123,7 +134,7 @@ router.get("/amount", async (req, res) => {
 
 // Update amount based on month, year, and isElectricBill
 router.put("/amount", async (req, res) => {
-  const { sheet, monthYear, isElectricBill, values } = req.body;
+  const { sheet, monthYear, isElectricBill, values, demoLogin } = req.body;
 
   if (!sheet || !monthYear || !values || !Array.isArray(values)) {
     return res
@@ -133,18 +144,16 @@ router.put("/amount", async (req, res) => {
 
   try {
     const data = await updateAmountByMonthYear(
-      spreadsheetId,
+      demoLogin ? demoSheetID : spreadsheetId,
       sheet,
       monthYear,
       Boolean(isElectricBill),
       values
     );
-    res
-      .status(200)
-      .json({
-        message: "Entry Successfully Updated",
-        data: { entriesUpdated: data?.updates?.updatedRows }
-      });
+    res.status(200).json({
+      message: "Entry Successfully Updated",
+      data: { entriesUpdated: data?.updates?.updatedRows }
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -13,10 +13,10 @@ const auth = new google.auth.GoogleAuth({
 
 const sheets = google.sheets({ version: "v4", auth });
 
-const fetchSheetSummary = async (spreadsheetId) => {
+const fetchSheetSummary = async (spreadsheetId, demoLogin = false) => {
   try {
     const sheetName = "Sheet-Summary"; // Specify the sheet name directly
-    const range = `${sheetName}!A2:G6`; // Adjusted to match the range for the provided table
+    const range = demoLogin ? `${sheetName}!A2:G3` : `${sheetName}!A2:G6`; // Adjusted to match the range for the provided table
 
     // Fetch data from the specific sheet
     const response = await sheets.spreadsheets.values.get({
