@@ -6,7 +6,9 @@ const {
   formatResponseData,
   paginateData,
   fetchAmountByMonthYear,
-  updateAmountByMonthYear
+  updateAmountByMonthYear,
+  fetchAllSheetsFormData,
+  getSheetData
 } = require("./modules/sheets");
 const googleLogin = require("./controller/authController");
 const authenticateToken = require("./middleware/auth");
@@ -35,6 +37,70 @@ router.get("/all-flats", async (req, res) => {
     res.status(200).json({ tenants: sheetsSummary });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/tenants/formData", async (req, res) => {
+  try {
+    const { demoLogin } = req.query;
+    const formData = await fetchAllSheetsFormData(
+      demoLogin ? demoSheetID : spreadsheetId
+    );
+    res.status(200).json({ formData });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.get("/tenants/financial-total", async (req, res) => {
+  try {
+    let { from, to, tenant, demoLogin } = req.query;
+
+    if (!from || !to || !tenant) {
+      return res
+        .status(400)
+        .json({ error: "Missing required query parameters" });
+    }
+
+    const range = "Financial-Report!A:F";
+
+    const data = await getSheetData(
+      demoLogin ? demoSheetID : spreadsheetId,
+      range
+    );
+    
+    const headers = data[0]; 
+
+    const tenantIndex =
+      tenant === "All-Flats" ? null : headers.indexOf(tenant);
+
+    if (tenant !== "All-Flats" && tenantIndex === -1) {
+      return res.status(400).json({ error: `Invalid tenant: ${tenant}` });
+    }
+
+    let totalSum = 0;
+    let withinRange = false;
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const monthYear = row[0]; // Month-Year column
+
+      if (monthYear === from) withinRange = true;
+      if (withinRange) {
+        if (tenant === "All-Flats") {
+          totalSum += row
+            .slice(1)
+            .reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+        } else {
+          totalSum += parseInt(row[tenantIndex]) || 0;
+        }
+      }
+      if (monthYear === to) break;
+    }
+
+    res.json({ totalSum });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

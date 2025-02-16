@@ -13,6 +13,49 @@ const auth = new google.auth.GoogleAuth({
 
 const sheets = google.sheets({ version: "v4", auth });
 
+const getSheetData = async (spreadsheetId, range) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: spreadsheetId,
+      range: range
+    });
+
+    return response.data.values; // Returns array of rows
+  } catch (error) {
+    throw new Error(`Error fetching data: ${error.message}`);
+  }
+};
+
+const fetchAllSheetsFormData = async (spreadsheetId) => {
+  try {
+    // Get all sheets metadata
+    const sheetsMetadata = await sheets.spreadsheets.get({
+      spreadsheetId
+    });
+
+    // Extract sheet names and filter out unwanted sheets
+    const excludedSheets = ["Sheet-Summary", "Financial-Report"];
+    const sheetNames = sheetsMetadata.data.sheets
+      .map((sheet) => sheet.properties.title)
+      .filter((name) => !excludedSheets.includes(name));
+
+    // Format into required object structure
+    const formattedSheets = sheetNames.map((name) => ({
+      name,
+      displayName: name
+    }));
+
+    const allFlats = {
+      name: "All-Flats",
+      displayName: "All-Flats"
+    };
+
+    return [allFlats, ...formattedSheets];
+  } catch (error) {
+    throw new Error(`Error fetching sheet names: ${error.message}`);
+  }
+};
+
 const fetchSheetSummary = async (spreadsheetId, demoLogin = false) => {
   try {
     const sheetName = "Sheet-Summary"; // Specify the sheet name directly
@@ -254,6 +297,8 @@ module.exports = {
   fetchRecentEntries,
   formatResponseData,
   paginateData,
+  getSheetData,
+  fetchAllSheetsFormData,
   fetchAmountByMonthYear,
   updateAmountByMonthYear
 };
