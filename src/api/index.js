@@ -8,7 +8,8 @@ const {
   fetchAmountByMonthYear,
   updateAmountByMonthYear,
   fetchAllSheetsFormData,
-  getSheetData
+  getSheetData,
+  updateSheetSummary
 } = require("./modules/sheets");
 const googleLogin = require("./controller/authController");
 const authenticateToken = require("./middleware/auth");
@@ -68,11 +69,10 @@ router.get("/tenants/financial-total", async (req, res) => {
       demoLogin ? demoSheetID : spreadsheetId,
       range
     );
-    
-    const headers = data[0]; 
 
-    const tenantIndex =
-      tenant === "All-Flats" ? null : headers.indexOf(tenant);
+    const headers = data[0];
+
+    const tenantIndex = tenant === "All-Flats" ? null : headers.indexOf(tenant);
 
     if (tenant !== "All-Flats" && tenantIndex === -1) {
       return res.status(400).json({ error: `Invalid tenant: ${tenant}` });
@@ -219,6 +219,32 @@ router.put("/amount", async (req, res) => {
     res.status(200).json({
       message: "Entry Successfully Updated",
       data: { entriesUpdated: data?.updates?.updatedRows }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.put("/update-summary", async (req, res) => {
+  const { flat, values, demoLogin } = req.body;
+
+  if (!flat || !values || !Array.isArray(values)) {
+    return res
+      .status(400)
+      .json({ message: "Flat name and values are mandatory." });
+  }
+
+  try {
+    const updateResponse = await updateSheetSummary(
+      demoLogin ? demoSheetID : spreadsheetId,
+      demoLogin,
+      flat,
+      values
+    );
+
+    res.status(200).json({
+      message: "Summary Successfully Updated",
+      data: { entriesUpdated: updateResponse?.updates?.updatedRows }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

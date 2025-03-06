@@ -291,6 +291,29 @@ const updateAmountByMonthYear = async (
   }
 };
 
+const updateSheetSummary = async (spreadsheetId, demoLogin, flat, values) => {
+  try {
+    const summary = await fetchSheetSummary(spreadsheetId, demoLogin);
+    const targetRowIndex = summary.findIndex((row) => row.floor === flat);
+
+    if (targetRowIndex === -1) {
+      return res.status(400).json({ message: "No matching flat found." });
+    }
+
+    const range = `Sheet-Summary!B${targetRowIndex + 2}:C${targetRowIndex + 2}`;
+    const updateResponse = await sheets.spreadsheets.values.update({
+      spreadsheetId: spreadsheetId,
+      range,
+      valueInputOption: "USER_ENTERED",
+      resource: { values }
+    });
+
+    return updateResponse.data;
+  } catch (error) {
+    throw new Error(`Error updating summary: ${error.message}`);
+  }
+};
+
 module.exports = {
   fetchSheetSummary,
   appendToSheet,
@@ -300,5 +323,6 @@ module.exports = {
   getSheetData,
   fetchAllSheetsFormData,
   fetchAmountByMonthYear,
-  updateAmountByMonthYear
+  updateAmountByMonthYear,
+  updateSheetSummary
 };
