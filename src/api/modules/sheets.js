@@ -59,7 +59,7 @@ const fetchAllSheetsFormData = async (spreadsheetId) => {
 const fetchSheetSummary = async (spreadsheetId, demoLogin = false) => {
   try {
     const sheetName = "Sheet-Summary"; // Specify the sheet name directly
-    const range = demoLogin ? `${sheetName}!A2:G3` : `${sheetName}!A2:G6`; // Adjusted to match the range for the provided table
+    const range = demoLogin ? `${sheetName}!A2:H3` : `${sheetName}!A2:H6`; // Adjusted to match the range for the provided table
 
     // Fetch data from the specific sheet
     const response = await sheets.spreadsheets.values.get({
@@ -76,7 +76,8 @@ const fetchSheetSummary = async (spreadsheetId, demoLogin = false) => {
       totalRentCollected: +row[3] || 0, // Column D: Total Rent Collected
       totalElectricityCollected: +row[4] || 0, // Column E: Total Electricity Collected
       rentStartDate: row[5] || "", // Column F: rent Start Date
-      lastEntryDate: row[6] || "" // Column G: recent Entry Date
+      lastEntryDate: row[6] || "", // Column G: recent Entry Date
+      status: row[7] || "" // Column H: Status
     }));
 
     return summary;
