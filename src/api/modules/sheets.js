@@ -315,6 +315,50 @@ const updateSheetSummary = async (spreadsheetId, demoLogin, flat, values) => {
   }
 };
 
+const deleteAmountByMonthYear = async (
+  spreadsheetId,
+  sheet,
+  monthYear,
+  isElectricBill
+) => {
+  try {
+    const columnRange = isElectricBill ? `${sheet}!E7:G` : `${sheet}!A7:C`;
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: columnRange
+    });
+
+    const rows = response.data.values || [];
+
+    const targetRowIndex = rows.findIndex((row) => {
+      const monthYearCol = row[1]; // Assuming column B holds the month-year
+      return monthYearCol === monthYear;
+    });
+
+    if (targetRowIndex === -1) {
+      throw new Error(
+        "No matching entry found for the specified month and year."
+      );
+    }
+
+    const targetRange = isElectricBill
+      ? `${sheet}!E${targetRowIndex + 7}:G${targetRowIndex + 7}`
+      : `${sheet}!A${targetRowIndex + 7}:C${targetRowIndex + 7}`;
+
+    // Clear the content of the cells
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: targetRange
+    });
+
+    return { deleted: true, rowIndex: targetRowIndex + 7 };
+  } catch (error) {
+    throw new Error(`Error deleting amount: ${error.message}`);
+  }
+};
+
+
 module.exports = {
   fetchSheetSummary,
   appendToSheet,
@@ -325,5 +369,6 @@ module.exports = {
   fetchAllSheetsFormData,
   fetchAmountByMonthYear,
   updateAmountByMonthYear,
-  updateSheetSummary
+  updateSheetSummary,
+  deleteAmountByMonthYear
 };

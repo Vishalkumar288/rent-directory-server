@@ -9,7 +9,8 @@ const {
   updateAmountByMonthYear,
   fetchAllSheetsFormData,
   getSheetData,
-  updateSheetSummary
+  updateSheetSummary,
+  deleteAmountByMonthYear
 } = require("./modules/sheets");
 const googleLogin = require("./controller/authController");
 const authenticateToken = require("./middleware/auth");
@@ -219,6 +220,31 @@ router.put("/amount", async (req, res) => {
     res.status(200).json({
       message: "Entry Successfully Updated",
       data: { entriesUpdated: data?.updates?.updatedRows }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+router.delete("/amount", async (req, res) => {
+  const { sheet, monthYear, isElectricBill, demoLogin } = req.query;
+
+  if (!sheet || !monthYear) {
+    return res
+      .status(400)
+      .json({ message: "Sheet name and month-year are mandatory." });
+  }
+
+  try {
+    const data = await deleteAmountByMonthYear(
+      demoLogin ? demoSheetID : spreadsheetId,
+      sheet,
+      monthYear,
+      Boolean(isElectricBill)
+    );
+    res.status(200).json({
+      message: "Entry successfully deleted",
+      data
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
